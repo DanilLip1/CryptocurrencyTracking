@@ -7,19 +7,19 @@ import (
 
 type Coin struct {
 	Title        string
-	Value        float64
+	Price        float64
 	CreationTime time.Time
 }
 
-func NewCoin(title string, value float64, creationTime time.Time) (*Coin, error) {
+func NewCoin(title string, price float64, creationTime time.Time) (*Coin, error) {
 	if len(title) == 0 {
 		return nil, errors.New("title is required")
 	}
-	if value <= 0 {
+	if price <= 0 {
 		return nil, errors.New("value is required")
 	}
 	if creationTime.IsZero() {
 		return nil, errors.New("creationTime is required")
 	}
-	return &Coin{Title: title, Value: value, CreationTime: creationTime}, nil
+	return &Coin{Title: title, Price: price, CreationTime: creationTime}, nil
 }

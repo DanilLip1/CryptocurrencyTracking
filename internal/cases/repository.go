@@ -3,7 +3,6 @@ package cases
 import (
 	"context"
 	"cryptocurrency/internal/entity"
-	"time"
 )
 
 type Repository interface {
@@ -12,19 +11,19 @@ type Repository interface {
 	SaveRates(ctx context.Context, rates []entity.Coin) error
 
 	// GetLast — самая свежая котировка конкретной валюты
-	GetLast(ctx context.Context, title []string) (*[]entity.Coin, error)
+	GetLast(ctx context.Context, title []string) ([]entity.Coin, error)
 
-	//GetMin24h - минимальная цена 24h
-	GetMin24h(ctx context.Context, title []string) (float64, error)
+	//GetMinPrice - минимальная цена 24h
+	GetMinPrice(ctx context.Context, title []string) ([]entity.Coin, error)
 
-	// GetMax24h — максимальная цена 24h
-	GetMax24h(ctx context.Context, title []string) (float64, error)
+	// GetMaxPrice — максимальная цена 24h
+	GetMaxPrice(ctx context.Context, title []string) ([]entity.Coin, error)
 
-	// GetPercent — процент
-	GetPercent(ctx context.Context, title []string, at time.Time) (*[]entity.Coin, error)
+	// GetChangePercent — процент
+	GetChangePercent(ctx context.Context, title []string) ([]entity.Coin, error)
 
 	// GetAll возвращает все отслеживаемые валюты
-	GetAll(ctx context.Context) (*[]entity.Coin, error)
+	GetAll(ctx context.Context) ([]string, error)
 
 	// CreateCoin сохраняет пачку новых валют
 	CreateCoin(ctx context.Context, coin []entity.Coin) error

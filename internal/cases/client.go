@@ -7,5 +7,5 @@ import (
 
 type ExchangeRateProvider interface {
 	// GetRates возвращает актуальные курсы
-	GetRates(ctx context.Context, title []string) ([]entity.Coin, error)
+	GetRates(ctx context.Context, titles []string) ([]entity.Coin, error)
 }

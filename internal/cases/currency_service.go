@@ -24,7 +24,7 @@ func NewCurrencyService(
 }
 
 func (s *CoinService) UpdateRates(ctx context.Context) error {
-	title, err := s.repo.GetAll(ctx)
+	title, err := s.repo.GetAllCoins(ctx)
 	if err != nil {
 		return err
 	}
@@ -38,15 +38,14 @@ func (s *CoinService) UpdateRates(ctx context.Context) error {
 	return nil
 }
 
-// GetLast возвращает последний курс по каждому запрошенному символу
-func (s *CoinService) GetLast(ctx context.Context, titles []string) ([]entity.Coin, error) {
+func (s *CoinService) GetLatestRates(ctx context.Context, titles []string) ([]entity.Coin, error) {
 	if len(titles) == 0 {
 		return nil, errors.New("titles is empty")
 	}
-	if err := s.AddCoin(ctx, titles); err != nil {
+	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, err
 	}
-	coins, err := s.repo.GetLast(ctx, titles)
+	coins, err := s.repo.GetLatestRates(ctx, titles)
 	if err != nil {
 		return nil, err
 	}
@@ -54,31 +53,31 @@ func (s *CoinService) GetLast(ctx context.Context, titles []string) ([]entity.Co
 }
 
 func (s *CoinService) GetMinPrice(ctx context.Context, titles []string) ([]entity.Coin, error) {
-	if err := s.AddCoin(ctx, titles); err != nil {
+	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, err
 	}
-	coins, err := s.repo.GetMinPrice(ctx, titles)
+	coins, err := s.repo.GetMinPrices(ctx, titles)
 	if err != nil {
 		return nil, err
 	}
 	return coins, nil
 }
 func (s *CoinService) GetMaxPrice(ctx context.Context, titles []string) ([]entity.Coin, error) {
-	if err := s.AddCoin(ctx, titles); err != nil {
+	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, err
 	}
-	coins, err := s.repo.GetMaxPrice(ctx, titles)
+	coins, err := s.repo.GetMaxPrices(ctx, titles)
 	if err != nil {
 		return nil, err
 	}
 	return coins, nil
 }
 
-func (s *CoinService) GetChangePercent(ctx context.Context, titles []string) ([]entity.Coin, error) {
-	if err := s.AddCoin(ctx, titles); err != nil {
+func (s *CoinService) GetPriceChangePercent(ctx context.Context, titles []string) ([]entity.Coin, error) {
+	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, err
 	}
-	coins, err := s.repo.GetChangePercent(ctx, titles)
+	coins, err := s.repo.GetPriceChangePercent(ctx, titles)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +87,9 @@ func (s *CoinService) GetChangePercent(ctx context.Context, titles []string) ([]
 	return coins, nil
 }
 
-// AddCoin добавление валюты
-func (s *CoinService) AddCoin(ctx context.Context, titles []string) error {
-	coins, err := s.repo.GetAll(ctx)
+// AddCoins добавление валюты
+func (s *CoinService) AddCoins(ctx context.Context, titles []string) error {
+	coins, err := s.repo.GetAllCoins(ctx)
 	if err != nil {
 		return err
 	}
@@ -103,19 +102,18 @@ func (s *CoinService) AddCoin(ctx context.Context, titles []string) error {
 			}
 		}
 		if !match {
-			coins = append(coins, title)
+			rates, err := s.provider.GetRates(ctx, titles)
+			if err != nil {
+				return err
+			}
+			if err := s.repo.CreateCoins(ctx, rates); err != nil {
+				return err
+			}
+			if err := s.UpdateRates(ctx); err != nil {
+				return err
+			}
+			return nil
 		}
-	}
-	rates, err := s.provider.GetRates(ctx, coins)
-	if err != nil {
-		return err
-	}
-
-	if err := s.repo.CreateCoin(ctx, rates); err != nil {
-		return err
-	}
-	if err := s.UpdateRates(ctx); err != nil {
-		return err
 	}
 	return nil
 }

@@ -7,24 +7,24 @@ import (
 
 type Repository interface {
 
-	//SaveRates сохраняет
+	//SaveRates сохраняет существующие
 	SaveRates(ctx context.Context, rates []entity.Coin) error
 
-	// GetLast — самая свежая котировка конкретной валюты
-	GetLast(ctx context.Context, title []string) ([]entity.Coin, error)
+	// GetLatestRates — самая свежая котировка конкретной валюты
+	GetLatestRates(ctx context.Context, titles []string) ([]entity.Coin, error)
 
-	//GetMinPrice - минимальная цена 24h
-	GetMinPrice(ctx context.Context, title []string) ([]entity.Coin, error)
+	//GetMinPrices - минимальная цена
+	GetMinPrices(ctx context.Context, titles []string) ([]entity.Coin, error)
 
-	// GetMaxPrice — максимальная цена 24h
-	GetMaxPrice(ctx context.Context, title []string) ([]entity.Coin, error)
+	// GetMaxPrices — максимальная цена
+	GetMaxPrices(ctx context.Context, titles []string) ([]entity.Coin, error)
 
-	// GetChangePercent — процент
-	GetChangePercent(ctx context.Context, title []string) ([]entity.Coin, error)
+	// GetPriceChangePercent — процент
+	GetPriceChangePercent(ctx context.Context, titles []string) ([]entity.Coin, error)
 
-	// GetAll возвращает все отслеживаемые валюты
-	GetAll(ctx context.Context) ([]string, error)
+	// GetAllCoins возвращает все отслеживаемые валюты
+	GetAllCoins(ctx context.Context) ([]string, error)
 
-	// CreateCoin сохраняет пачку новых валют
-	CreateCoin(ctx context.Context, coin []entity.Coin) error
+	// CreateCoins добавляет новые монеты
+	CreateCoins(ctx context.Context, coins []entity.Coin) error
 }

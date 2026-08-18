@@ -23,8 +23,8 @@ func NewCurrencyService(
 	return &CoinService{repo: repo, provider: provider}, nil
 }
 
-func (s *CoinService) UpdateRates(ctx context.Context) error {
-	title, err := s.repo.GetAllCoins(ctx)
+func (s *CoinService) UpdatePrices(ctx context.Context) error {
+	title, err := s.repo.GetTitles(ctx)
 	if err != nil {
 		return err
 	}
@@ -32,27 +32,27 @@ func (s *CoinService) UpdateRates(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err = s.repo.SaveRates(ctx, rates); err != nil {
+	if err = s.repo.SaveCoinPrices(ctx, rates); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *CoinService) GetLatestRates(ctx context.Context, titles []string) ([]entity.Coin, error) {
+func (s *CoinService) GetLatestPrices(ctx context.Context, titles []string) ([]entity.Coin, error) {
 	if len(titles) == 0 {
 		return nil, errors.New("titles is empty")
 	}
 	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, err
 	}
-	coins, err := s.repo.GetLatestRates(ctx, titles)
+	coins, err := s.repo.GetLatestPrices(ctx, titles)
 	if err != nil {
 		return nil, err
 	}
 	return coins, nil
 }
 
-func (s *CoinService) GetMinPrice(ctx context.Context, titles []string) ([]entity.Coin, error) {
+func (s *CoinService) GetMinPrices(ctx context.Context, titles []string) ([]entity.Coin, error) {
 	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (s *CoinService) GetMinPrice(ctx context.Context, titles []string) ([]entit
 	}
 	return coins, nil
 }
-func (s *CoinService) GetMaxPrice(ctx context.Context, titles []string) ([]entity.Coin, error) {
+func (s *CoinService) GetMaxPrices(ctx context.Context, titles []string) ([]entity.Coin, error) {
 	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (s *CoinService) GetPriceChangePercent(ctx context.Context, titles []string
 
 // AddCoins добавление валюты
 func (s *CoinService) AddCoins(ctx context.Context, titles []string) error {
-	coins, err := s.repo.GetAllCoins(ctx)
+	coins, err := s.repo.GetTitles(ctx)
 	if err != nil {
 		return err
 	}
@@ -106,13 +106,12 @@ func (s *CoinService) AddCoins(ctx context.Context, titles []string) error {
 			if err != nil {
 				return err
 			}
-			if err := s.repo.CreateCoins(ctx, rates); err != nil {
+			if err := s.repo.AddTrackedTitles(ctx, titles); err != nil {
 				return err
 			}
-			if err := s.UpdateRates(ctx); err != nil {
+			if err := s.repo.SaveCoinPrices(ctx, rates); err != nil {
 				return err
 			}
-			return nil
 		}
 	}
 	return nil

@@ -37,8 +37,8 @@ func NewClient(apiKey string, httpClient *http.Client) (*Client, error) {
 		apiKey:     apiKey,
 	}, nil
 }
-func (c *Client) GetRates(ctx context.Context, title []string) (*[]entity.Coin, error) {
-	if len(title) == 0 {
+func (c *Client) GetRates(ctx context.Context, titles []string) ([]entity.Coin, error) {
+	if len(titles) == 0 {
 		return nil, fmt.Errorf("titles is empty")
 	}
 	endpoint, err := c.baseURL.Parse("simple/price")
@@ -46,8 +46,8 @@ func (c *Client) GetRates(ctx context.Context, title []string) (*[]entity.Coin, 
 		return nil, fmt.Errorf("failed to parse url: %w", err)
 	}
 	query := url.Values{}
-	query.Set("ids", strings.Join(title, ","))
-	query.Set("vs_currencies", strings.Join(title, ","))
+	query.Set("ids", strings.Join(titles, ","))
+	query.Set("vs_currencies", "usd")
 
 	endpoint.RawQuery = query.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
@@ -55,7 +55,7 @@ func (c *Client) GetRates(ctx context.Context, title []string) (*[]entity.Coin, 
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("CG-WsbXAzsUfVjqrT7VNGQ84HAK", c.apiKey)
+	req.Header.Set("x-cg-demo-api-key", c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -90,5 +90,5 @@ func (c *Client) GetRates(ctx context.Context, title []string) (*[]entity.Coin, 
 	if len(coins) == 0 {
 		return nil, fmt.Errorf("coingecko returned no coins")
 	}
-	return &coins, nil
+	return coins, nil
 }

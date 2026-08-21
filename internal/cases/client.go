@@ -5,7 +5,7 @@ import (
 	"cryptocurrency/internal/entity"
 )
 
-type ExchangeRateProvider interface {
+type Provider interface {
 	// GetRates возвращает актуальные курсы
 	GetRates(ctx context.Context, titles []string) ([]entity.Coin, error)
 }

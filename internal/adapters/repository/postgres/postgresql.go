@@ -2,8 +2,8 @@ package postgres
 
 import (
 	"context"
+	"cryptocurrency/internal/cases"
 	"cryptocurrency/internal/entity"
-	"fmt"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -16,9 +16,14 @@ type Repository struct {
 	sq   squirrel.StatementBuilderType
 }
 
-func NewRepository(pool *pgxpool.Pool) (*Repository, error) {
-	if pool == nil {
-		return nil, errors.Wrap(entity.ErrNotFound, "PostgreSQL repository: pool is nil")
+func NewRepository(ctx context.Context, dataBaseURL string) (*Repository, error) {
+	pool, err := pgxpool.New(ctx, dataBaseURL)
+	if err != nil {
+		return nil, errors.Wrap(err, "PostgreSQL repository: create connection pool")
+	}
+	if err := pool.Ping(ctx); err != nil {
+		defer pool.Close()
+		return nil, errors.Wrap(err, "PostgreSQL repository: ping connection pool")
 	}
 	return &Repository{
 		pool: pool,
@@ -50,193 +55,99 @@ func (r *Repository) SaveCoinPrices(ctx context.Context, coins []entity.Coin) er
 	return nil
 }
 
-func (r *Repository) GetLatestPrices(ctx context.Context, titles []string) ([]entity.Coin, error) {
+func (r *Repository) Get(ctx context.Context, titles []string, opts ...cases.Option) ([]entity.Coin, error) {
 	if len(titles) == 0 {
-		return nil, errors.Wrap(entity.ErrInvalidParams, "PostgresSQL repository GetLatestPrices: titles is empty")
+		return nil, errors.Wrap(entity.ErrInvalidParams, "PostgresSQL repository Get: titles is empty")
 	}
 
-	query, args, err := r.sq.
-		Select("DISTINCT ON (title) title", "price", "creation_time").
-		From("coin_prices").
-		Where(squirrel.Eq{"title": titles}).
-		OrderBy("title", "creation_time DESC").
-		ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetLatestPrices: failed to generate sql")
-	}
-	rows, err := r.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetLatestPrices: failed to execute sql")
-	}
-	defer rows.Close()
-
-	coins := make([]entity.Coin, 0)
-
-	for rows.Next() {
-		var (
-			title        string
-			price        float64
-			creationTime time.Time
-		)
-
-		if err := rows.Scan(
-			&title,
-			&price,
-			&creationTime,
-		); err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetLatestPrices: failed to scan")
-		}
-		coin, err := entity.NewCoin(title, price, creationTime)
+	options := cases.NewOptions(opts...)
+	var (
+		query string
+		args  []any
+		err   error
+	)
+	switch options.Mode {
+	case cases.ModeLatestPrices:
+		query, args, err = r.sq.
+			Select("DISTINCT ON (title) title", "price", "creation_time").
+			From("coin_prices").
+			Where(squirrel.Eq{"title": titles}).
+			OrderBy("title", "creation_time DESC").
+			ToSql()
 		if err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetLatestPrices: failed to create coin")
+			return nil, errors.Wrap(err, "PostgresSQL repository GetLatestPrices: failed to generate sql")
 		}
-		coins = append(coins, *coin)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetLatestPrices: failed to fetch rows")
-	}
-	return coins, nil
-}
-
-func (r *Repository) GetMinPrices(ctx context.Context, titles []string) ([]entity.Coin, error) {
-	if len(titles) == 0 {
-		return nil, errors.Wrap(entity.ErrInvalidParams, "PostgresSQL repository GetMinPrices: titles is empty")
-	}
-	since := time.Now().Add(-24 * time.Hour)
-	query, args, err := r.sq.
-		Select("DISTINCT ON (title) title, price, creation_time").
-		From("coin_prices").
-		Where(squirrel.Eq{"title": titles}).
-		Where(squirrel.GtOrEq{"creation_time": since}).
-		OrderBy("title", "price ASC").
-		ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to generate sql")
-	}
-	rows, err := r.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to execute sql")
-	}
-	defer rows.Close()
-
-	coins := make([]entity.Coin, 0)
-	for rows.Next() {
-		var (
-			title        string
-			price        float64
-			creationTime time.Time
-		)
-		if err := rows.Scan(
-			&title,
-			&price,
-			&creationTime,
-		); err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to scan")
-		}
-		coin, err := entity.NewCoin(title, price, creationTime)
+	case cases.ModeMinPrices:
+		since := time.Now().Add(-24 * time.Hour)
+		query, args, err = r.sq.
+			Select("DISTINCT ON (title) title, price, creation_time").
+			From("coin_prices").
+			Where(squirrel.Eq{"title": titles}).
+			Where(squirrel.GtOrEq{"creation_time": since}).
+			OrderBy("title", "price ASC").
+			ToSql()
 		if err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to create coin")
+			return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to generate sql")
 		}
-		coins = append(coins, *coin)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to fetch rows")
-	}
-	return coins, nil
-}
-
-func (r *Repository) GetMaxPrices(ctx context.Context, titles []string) ([]entity.Coin, error) {
-	if len(titles) == 0 {
-		return nil, errors.Wrap(entity.ErrInvalidParams, "PostgresSQL repository GetMAxPrices: titles is empty")
-	}
-	since := time.Now().Add(-24 * time.Hour)
-	query, args, err := r.sq.
-		Select("DISTINCT ON (title) title", "price", "creation_time").
-		From("coin_prices").
-		Where(squirrel.Eq{"title": titles}).
-		Where(squirrel.GtOrEq{"creation_time": since}).
-		OrderBy("title", "price DESC").
-		ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetMAxPrices: failed to generate sql")
-	}
-	rows, err := r.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetMAxPrices: failed to execute sql")
-	}
-	defer rows.Close()
-
-	coins := make([]entity.Coin, 0)
-	for rows.Next() {
-		var (
-			title        string
-			price        float64
-			creationTime time.Time
-		)
-		if err := rows.Scan(
-			&title,
-			&price,
-			&creationTime,
-		); err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetMAxPrices: failed to scan")
-		}
-		coin, err := entity.NewCoin(title, price, creationTime)
+	case cases.ModeMaxPrices:
+		since := time.Now().Add(-24 * time.Hour)
+		query, args, err = r.sq.
+			Select("DISTINCT ON (title) title, price, creation_time").
+			From("coin_prices").
+			Where(squirrel.Eq{"title": titles}).
+			Where(squirrel.GtOrEq{"creation_time": since}).
+			OrderBy("title", "price DESC").
+			ToSql()
 		if err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetMAxPrices: failed to create coin")
+			return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to generate sql")
 		}
-		coins = append(coins, *coin)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetMAxPrices: failed to fetch rows")
-	}
-	return coins, nil
-}
+	case cases.ModePriceChangePercent:
+		since := time.Now().Add(-time.Hour)
+		latestQuery, latestArgs, err := r.sq.
+			Select("DISTINCT ON (title) title", "price", "creation_time").
+			From("coin_prices").
+			Where(squirrel.Eq{"title": titles}).
+			OrderBy("title", "creation_time DESC").
+			ToSql()
+		if err != nil {
+			return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to generate sql")
+		}
+		hourAgoQuery, hourAgoArgs, err := r.sq.
+			Select("DISTINCT ON (title) title", "price", "creation_time").
+			From("coin_prices").
+			Where(squirrel.Eq{"title": titles}).
+			Where(squirrel.GtOrEq{"creation_time": since}).
+			OrderBy("title", "creation_time ASC").
+			ToSql()
+		if err != nil {
+			return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to generate sql")
+		}
+		query = `
+			WITH latest AS (` + latestQuery + `),
+			hour_ago AS (` + hourAgoQuery + `)
+			SELECT
+				latest.title,
+				(latest.price - hour_ago.price)
+					/ hour_ago.price * 100,
+				latest.creation_time
+			FROM latest
+			JOIN hour_ago
+				ON hour_ago.title = latest.title
+			WHERE hour_ago.price <> 0
+		`
 
-func (r *Repository) GetPriceChangePercent(ctx context.Context, titles []string) ([]entity.Coin, error) {
-	if len(titles) == 0 {
-		return nil, errors.Wrap(entity.ErrInvalidParams, "PostgresSQL repository GetPriceChangePercent: titles is empty")
-	}
-	since := time.Now().Add(-time.Hour)
-	latestQuery, latestArgs, err := r.sq.
-		Select("DISTINCT ON (title) title", "price", "creation_time").
-		From("coin_prices").
-		Where(squirrel.Eq{"title": titles}).
-		OrderBy("title", "creation_time DESC").
-		ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to generate sql")
-	}
-	hourAgoQuery, hourAgoArgs, err := r.sq.
-		Select("DISTINCT ON (title) title", "price", "creation_time").
-		From("coin_prices").
-		Where(squirrel.Eq{"title": titles}).
-		Where(squirrel.GtOrEq{"creation_time": since}).
-		OrderBy("title", "creation_time ASC").
-		ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to generate sql")
+		args = append(latestArgs, hourAgoArgs...)
+	default:
+		return nil, errors.Wrap(entity.ErrInvalidParams, "PostgresSQL repository GetLatestPrices: unsupported mode")
 	}
 
-	query := fmt.Sprintf(`
-		WITH latest AS (%s),
-		hour_ago AS (%s)
-		SELECT
-			latest.title,
-			(latest.price-hour_ago.price) / hour_ago.price * 100,
-			latest.creation_time	
-		FROM latest
-		JOIN hour_ago
-			ON hour_ago.title = latest.title	
-		WHERE hour_ago.price <> 0`,
-		latestQuery, hourAgoQuery)
-
-	args := append(latestArgs, hourAgoArgs...)
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to execute sql")
 	}
 	defer rows.Close()
-	changes := make([]entity.Coin, 0)
+
+	var coins []entity.Coin
 	for rows.Next() {
 		var (
 			title        string
@@ -246,20 +157,20 @@ func (r *Repository) GetPriceChangePercent(ctx context.Context, titles []string)
 		if err := rows.Scan(
 			&title,
 			&price,
-			&creationTime,
-		); err != nil {
+			&creationTime); err != nil {
 			return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to scan")
 		}
+
 		coin, err := entity.NewCoin(title, price, creationTime)
 		if err != nil {
 			return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to create coin")
 		}
-		changes = append(changes, *coin)
+		coins = append(coins, *coin)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to fetch rows")
 	}
-	return changes, nil
+	return coins, nil
 }
 
 func (r *Repository) GetTitles(ctx context.Context) ([]string, error) {

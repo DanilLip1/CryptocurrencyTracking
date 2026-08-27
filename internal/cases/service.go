@@ -46,7 +46,7 @@ func (s *CoinService) GetLatestPrices(ctx context.Context, titles []string) ([]e
 	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, errors.Wrap(err, "service get latest prices: add coins")
 	}
-	coins, err := s.repo.GetLatestPrices(ctx, titles)
+	coins, err := s.repo.Get(ctx, titles, WithLatest())
 	if err != nil {
 		return nil, errors.Wrap(err, "service get latest prices")
 	}
@@ -57,7 +57,7 @@ func (s *CoinService) GetMinPrices(ctx context.Context, titles []string) ([]enti
 	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, errors.Wrap(err, "service get min price: add coins")
 	}
-	coins, err := s.repo.GetMinPrices(ctx, titles)
+	coins, err := s.repo.Get(ctx, titles, WithMin())
 	if err != nil {
 		return nil, errors.Wrap(err, "service get min price:")
 	}
@@ -67,7 +67,7 @@ func (s *CoinService) GetMaxPrices(ctx context.Context, titles []string) ([]enti
 	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, errors.Wrap(err, "service get max prices: add coins")
 	}
-	coins, err := s.repo.GetMaxPrices(ctx, titles)
+	coins, err := s.repo.Get(ctx, titles, WithMax())
 	if err != nil {
 		return nil, errors.Wrap(err, "service get max prices")
 	}
@@ -78,7 +78,7 @@ func (s *CoinService) GetPriceChangePercent(ctx context.Context, titles []string
 	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, errors.Wrap(err, "service get price change percent: add coins")
 	}
-	coins, err := s.repo.GetPriceChangePercent(ctx, titles)
+	coins, err := s.repo.Get(ctx, titles, WithPercent())
 	if err != nil {
 		return nil, errors.Wrap(err, "service get price change percent")
 	}

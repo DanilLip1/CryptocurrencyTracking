@@ -21,20 +21,29 @@ type Client struct {
 
 func NewClient(apiKey, base string) (*Client, error) {
 	if apiKey == "" {
-		return nil, errors.Wrap(entity.ErrInvalidParams, "api key is required")
+		return nil, errors.Wrap(entity.ErrInvalidParams, "CoinGecko client: api key is required")
+	}
+
+	u, err := url.Parse(base)
+	if err != nil {
+		return nil, errors.Wrap(
+			err,
+			"CoinGecko client: failed to parse URL",
+		)
 	}
 	return &Client{
-		baseURL: base,
-		apiKey:  apiKey,
+		baseURL:    u.String(),
+		httpClient: &http.Client{Timeout: 5 * time.Second},
+		apiKey:     apiKey,
 	}, nil
 }
 
 func (c *Client) GetRates(ctx context.Context, titles []string) ([]entity.Coin, error) {
 	if len(titles) == 0 {
-		return nil, errors.Wrap(entity.ErrInvalidParams, "titles is required")
+		return nil, errors.Wrap(entity.ErrInvalidParams, "CoinGecko GetRates: titles is required")
 	}
 	//endpoint, err := c.baseURL.Parse("simple/price")
-	rawURL, err := url.Parse(c.baseURL + "/global/rates")
+	rawURL, err := url.Parse(c.baseURL + "/simple/price")
 	if err != nil {
 		return nil, errors.Wrap(err, "parse url")
 	}
@@ -45,25 +54,25 @@ func (c *Client) GetRates(ctx context.Context, titles []string) ([]entity.Coin, 
 	rawURL.RawQuery = query.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL.String(), nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "create request")
+		return nil, errors.Wrap(err, "CoinGecko GetRates: create request")
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("x-cg-demo-api-key", c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "request coingecko")
+		return nil, errors.Wrap(err, "CoinGecko GetRates: request coingecko")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("coingecko status code: %s", resp.Status)
+		return nil, fmt.Errorf("CoinGecko GetRates: coingecko status code: %s", resp.Status)
 	}
 
 	var data map[string]map[string]float64
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, errors.Wrap(err, "decode coingecko response")
+		return nil, errors.Wrap(err, "CoinGecko GetRates: decode coingecko response")
 	}
 
 	coins := make([]entity.Coin, 0, len(data))
@@ -76,12 +85,12 @@ func (c *Client) GetRates(ctx context.Context, titles []string) ([]entity.Coin, 
 		}
 		coin, err := entity.NewCoin(title, price, now)
 		if err != nil {
-			return nil, errors.Wrap(err, "new coin: %w")
+			return nil, errors.Wrap(err, "CoinGecko GetRates: new coin: %w")
 		}
 		coins = append(coins, *coin)
 	}
 	if len(coins) == 0 {
-		return nil, errors.Wrap(entity.ErrNotFound, "coingecko returned no coins")
+		return nil, errors.Wrap(entity.ErrNotFound, "CoinGecko GetRates: coingecko returned no coins")
 	}
 	return coins, nil
 }

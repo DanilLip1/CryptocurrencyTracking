@@ -27,14 +27,14 @@ func NewCurrencyService(
 func (s *CoinService) UpdatePrices(ctx context.Context) error {
 	title, err := s.repo.GetTitles(ctx)
 	if err != nil {
-		return errors.Wrap(err, "get titles")
+		return errors.Wrap(err, "service update prices: get titles")
 	}
 	rates, err := s.provider.GetRates(ctx, title)
 	if err != nil {
 		return errors.Wrap(err, "get rates")
 	}
 	if err = s.repo.SaveCoinPrices(ctx, rates); err != nil {
-		return errors.Wrap(err, "save coin prices")
+		return errors.Wrap(err, "Service update prices: save coin prices")
 	}
 	return nil
 }
@@ -44,46 +44,46 @@ func (s *CoinService) GetLatestPrices(ctx context.Context, titles []string) ([]e
 		return nil, errors.Wrap(entity.ErrInvalidParams, "service get latest prices: titles is empty ")
 	}
 	if err := s.AddCoins(ctx, titles); err != nil {
-		return nil, errors.Wrap(err, "add coins")
+		return nil, errors.Wrap(err, "service get latest prices: add coins")
 	}
 	coins, err := s.repo.GetLatestPrices(ctx, titles)
 	if err != nil {
-		return nil, errors.Wrap(err, "get latest prices")
+		return nil, errors.Wrap(err, "service get latest prices")
 	}
 	return coins, nil
 }
 
 func (s *CoinService) GetMinPrices(ctx context.Context, titles []string) ([]entity.Coin, error) {
 	if err := s.AddCoins(ctx, titles); err != nil {
-		return nil, errors.Wrap(err, "add coins")
+		return nil, errors.Wrap(err, "service get min price: add coins")
 	}
 	coins, err := s.repo.GetMinPrices(ctx, titles)
 	if err != nil {
-		return nil, errors.Wrap(err, "get min prices")
+		return nil, errors.Wrap(err, "service get min price:")
 	}
 	return coins, nil
 }
 func (s *CoinService) GetMaxPrices(ctx context.Context, titles []string) ([]entity.Coin, error) {
 	if err := s.AddCoins(ctx, titles); err != nil {
-		return nil, errors.Wrap(err, "add coins")
+		return nil, errors.Wrap(err, "service get max prices: add coins")
 	}
 	coins, err := s.repo.GetMaxPrices(ctx, titles)
 	if err != nil {
-		return nil, errors.Wrap(err, "get max prices")
+		return nil, errors.Wrap(err, "service get max prices")
 	}
 	return coins, nil
 }
 
 func (s *CoinService) GetPriceChangePercent(ctx context.Context, titles []string) ([]entity.Coin, error) {
 	if err := s.AddCoins(ctx, titles); err != nil {
-		return nil, errors.Wrap(err, "add coins")
+		return nil, errors.Wrap(err, "service get price change percent: add coins")
 	}
 	coins, err := s.repo.GetPriceChangePercent(ctx, titles)
 	if err != nil {
-		return nil, errors.Wrap(err, "get price change percent")
+		return nil, errors.Wrap(err, "service get price change percent")
 	}
 	if len(coins) == 0 {
-		return nil, errors.Wrap(entity.ErrNotFound, "coins not found")
+		return nil, errors.Wrap(entity.ErrNotFound, "service get price change percent: coins not found")
 	}
 	return coins, nil
 }
@@ -92,7 +92,7 @@ func (s *CoinService) GetPriceChangePercent(ctx context.Context, titles []string
 func (s *CoinService) AddCoins(ctx context.Context, titles []string) error {
 	coins, err := s.repo.GetTitles(ctx)
 	if err != nil {
-		return errors.Wrap(err, "get titles")
+		return errors.Wrap(err, "service add coins: get titles")
 	}
 	for _, title := range titles {
 		match := false
@@ -105,13 +105,13 @@ func (s *CoinService) AddCoins(ctx context.Context, titles []string) error {
 		if !match {
 			rates, err := s.provider.GetRates(ctx, titles)
 			if err != nil {
-				return errors.Wrap(err, "get rates")
+				return errors.Wrap(err, "service add coins: get rates")
 			}
 			if err := s.repo.AddTrackedTitles(ctx, titles); err != nil {
-				return errors.Wrap(err, "add tracked titles")
+				return errors.Wrap(err, "service add coins: add tracked titles")
 			}
 			if err := s.repo.SaveCoinPrices(ctx, rates); err != nil {
-				return errors.Wrap(err, "save coin prices")
+				return errors.Wrap(err, "service add coins: save coin prices")
 			}
 		}
 	}

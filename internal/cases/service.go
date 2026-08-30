@@ -46,7 +46,7 @@ func (s *CoinService) GetLatestPrices(ctx context.Context, titles []string) ([]e
 	if err := s.AddCoins(ctx, titles); err != nil {
 		return nil, errors.Wrap(err, "service get latest prices: add coins")
 	}
-	coins, err := s.repo.Get(ctx, titles, WithLatest())
+	coins, err := s.repo.Get(ctx, titles)
 	if err != nil {
 		return nil, errors.Wrap(err, "service get latest prices")
 	}

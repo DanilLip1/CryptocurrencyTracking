@@ -60,23 +60,17 @@ func (r *Repository) Get(ctx context.Context, titles []string, opts ...cases.Opt
 		return nil, errors.Wrap(entity.ErrInvalidParams, "PostgresSQL repository Get: titles is empty")
 	}
 
-	options := cases.NewOptions(opts...)
+	options := &cases.Options{}
+	for _, opt := range opts {
+		opt(options)
+	}
 	var (
 		query string
 		args  []any
 		err   error
 	)
+
 	switch options.Mode {
-	case cases.ModeLatestPrices:
-		query, args, err = r.sq.
-			Select("DISTINCT ON (title) title", "price", "creation_time").
-			From("coin_prices").
-			Where(squirrel.Eq{"title": titles}).
-			OrderBy("title", "creation_time DESC").
-			ToSql()
-		if err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetLatestPrices: failed to generate sql")
-		}
 	case cases.ModeMinPrices:
 		since := time.Now().Add(-24 * time.Hour)
 		query, args, err = r.sq.

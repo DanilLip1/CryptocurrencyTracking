@@ -1,21 +1,16 @@
-package server
+package http
 
 import (
 	"context"
 	"cryptocurrency/internal/entity"
 	"encoding/json"
 	"net/http"
+	"reflect"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 )
 
-type Service interface {
-	GetLatestPrices(ctx context.Context, titles []string) ([]entity.Coin, error)
-	GetMinPrices(ctx context.Context, titles []string) ([]entity.Coin, error)
-	GetMaxPrices(ctx context.Context, titles []string) ([]entity.Coin, error)
-	GetPriceChangePercent(ctx context.Context, titles []string) ([]entity.Coin, error)
-}
 type Server struct {
 	service Service
 	router  *chi.Mux
@@ -23,11 +18,12 @@ type Server struct {
 }
 
 func NewServer(service Service, address string) (*Server, error) {
-	if service == nil {
-		return nil, errors.Wrap(entity.ErrInvalidParams, "http server: service is nil")
+	// посмотреть
+	if isNil(service) {
+		return nil, errors.Wrap(entity.ErrInvalidParams, "http: service is nil")
 	}
 	if address == "" {
-		return nil, errors.Wrap(entity.ErrInvalidParams, "http server: address is empty")
+		return nil, errors.Wrap(entity.ErrInvalidParams, "http: address is empty")
 	}
 	router := chi.NewRouter()
 	server := &Server{
@@ -43,10 +39,10 @@ func NewServer(service Service, address string) (*Server, error) {
 }
 
 func (s *Server) routes() {
-	s.router.Get("/coins/prices", s.GetLatestPrices)
-	s.router.Get("/coins/prices/min", s.GetMinPrices)
-	s.router.Get("/coins/prices/max", s.GetMaxPrices)
-	s.router.Get("/coins/prices/change-percent", s.GetPriceChangePercent)
+	s.router.Get("latest/prices/coins", s.GetLatestPrices)
+	s.router.Get("/minimum/prices/coins", s.GetMinPrices)
+	s.router.Get("/maximum/prices/coins", s.GetMaxPrices)
+	s.router.Get("change-percent/prices/coins", s.GetPriceChangePercent)
 }
 
 func (s *Server) GetLatestPrices(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +61,11 @@ func (s *Server) GetLatestPrices(w http.ResponseWriter, r *http.Request) {
 		response[i] = NewCoinDTO(coin)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		Error(w, err)
+		return
+	}
 }
 
 func (s *Server) GetMinPrices(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +84,11 @@ func (s *Server) GetMinPrices(w http.ResponseWriter, r *http.Request) {
 		response[i] = NewCoinDTO(coin)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		Error(w, err)
+		return
+	}
 }
 
 func (s *Server) GetMaxPrices(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +107,11 @@ func (s *Server) GetMaxPrices(w http.ResponseWriter, r *http.Request) {
 		response[i] = NewCoinDTO(coin)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		Error(w, err)
+		return
+	}
 }
 
 func (s *Server) GetPriceChangePercent(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +130,11 @@ func (s *Server) GetPriceChangePercent(w http.ResponseWriter, r *http.Request) {
 		response[i] = NewCoinDTO(coin)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		Error(w, err)
+		return
+	}
 }
 
 func Error(w http.ResponseWriter, err error) {
@@ -138,13 +150,21 @@ func Error(w http.ResponseWriter, err error) {
 
 func (s *Server) Run() error {
 	if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return errors.Wrap(err, "http server: ListenAndServe")
+		return errors.Wrap(err, "http http: ListenAndServe")
 	}
 	return nil
 }
 func (s *Server) Shutdown(ctx context.Context) error {
 	if err := s.server.Shutdown(ctx); err != nil {
-		return errors.Wrap(err, "http server: Shutdown")
+		return errors.Wrap(err, "http http: Shutdown")
 	}
 	return nil
+}
+
+func isNil(service Service) bool {
+	if service == nil {
+		return true
+	}
+	value := reflect.ValueOf(service)
+	return value.Kind() == reflect.Ptr && value.IsNil()
 }

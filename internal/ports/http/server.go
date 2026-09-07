@@ -39,10 +39,14 @@ func NewServer(service Service, address string) (*Server, error) {
 }
 
 func (s *Server) routes() {
-	s.router.Get("latest/prices/coins", s.GetLatestPrices)
-	s.router.Get("/minimum/prices/coins", s.GetMinPrices)
-	s.router.Get("/maximum/prices/coins", s.GetMaxPrices)
-	s.router.Get("change-percent/prices/coins", s.GetPriceChangePercent)
+	s.router.Route("api/v1", func(r chi.Router) {
+		r.Route("/coins", func(r chi.Router) {
+			r.Get("/get/latest", s.GetLatestPrices)
+			r.Get("/get/min", s.GetMinPrices)
+			r.Get("/get/max", s.GetMaxPrices)
+			r.Get("/get/change-percent", s.GetPriceChangePercent)
+		})
+	})
 }
 
 func (s *Server) GetLatestPrices(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +67,7 @@ func (s *Server) GetLatestPrices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		Error(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -86,7 +90,7 @@ func (s *Server) GetMinPrices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		Error(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -109,7 +113,7 @@ func (s *Server) GetMaxPrices(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		Error(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
@@ -132,7 +136,7 @@ func (s *Server) GetPriceChangePercent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		Error(w, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

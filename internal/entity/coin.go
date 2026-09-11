@@ -16,9 +16,6 @@ func NewCoin(title string, price float64, creationTime time.Time) (*Coin, error)
 	if len(title) == 0 {
 		return nil, errors.Wrap(ErrInvalidParams, "Entity coin: title is required")
 	}
-	if price <= 0 {
-		return nil, errors.Wrap(ErrInvalidParams, "Entity coin: price must be greater than zero")
-	}
 	if creationTime.IsZero() {
 		return nil, errors.Wrap(ErrInvalidParams, "Entity coin: creation time is required")
 	}

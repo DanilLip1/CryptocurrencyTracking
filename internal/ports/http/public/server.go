@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Server struct {
@@ -17,7 +18,7 @@ type Server struct {
 	server  *http.Server
 }
 
-func NewServer(service Service) (*Server, error) {
+func NewServer(service Service, address string) (*Server, error) {
 	if service == nil || service == Service(nil) {
 		return nil, errors.Wrap(entity.ErrInvalidParams, "http: service is nil")
 	}
@@ -29,12 +30,14 @@ func NewServer(service Service) (*Server, error) {
 	server.routes()
 	server.server = &http.Server{
 		Handler: router,
+		Addr:    address,
 	}
 	return server, nil
 }
 
 func (s *Server) routes() {
-	s.router.Route("api/v1/coins", func(r chi.Router) {
+	s.router.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL("/swagger/doc.json")))
+	s.router.Route("/api/v1/coins", func(r chi.Router) {
 		r.Get("/get/latest", s.GetLatestPrices)
 		r.Get("/get/min", s.GetMinPrices)
 		r.Get("/get/max", s.GetMaxPrices)
@@ -42,6 +45,17 @@ func (s *Server) routes() {
 	})
 }
 
+// GetLatestPrices
+// @Summary Get latest prices
+// @Description Returns the latest prices for requested cryptocurrencies
+// @Tags coins
+// @Produce json
+// @Param title query []string true "Coin titles"
+// @Success 200 {array} dto.CoinDTO
+// @Failure 400 {string} string
+// @Failure 404 {string} string
+// @Failure 500 {string} string
+// @Router /coins/get/latest [get]
 func (s *Server) GetLatestPrices(rw http.ResponseWriter, req *http.Request) {
 	titles := req.URL.Query()["title"]
 	if len(titles) == 0 {
@@ -66,6 +80,17 @@ func (s *Server) GetLatestPrices(rw http.ResponseWriter, req *http.Request) {
 	rw.WriteHeader(http.StatusOK)
 }
 
+// GetMinPrices
+// @Summary Get minimum prices
+// @Description Returns minimum cryptocurrency prices for the last 24 hours
+// @Tags coins
+// @Produce json
+// @Param title query []string true "Coin titles"
+// @Success 200 {array} dto.CoinDTO
+// @Failure 400 {string} string
+// @Failure 404 {string} string
+// @Failure 500 {string} string
+// @Router /coins/get/min [get]
 func (s *Server) GetMinPrices(w http.ResponseWriter, r *http.Request) {
 	titles := r.URL.Query()["title"]
 	if len(titles) == 0 {
@@ -89,6 +114,17 @@ func (s *Server) GetMinPrices(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetMaxPrices
+// @Summary Get maximum prices
+// @Description Returns maximum cryptocurrency prices for the last 24 hours
+// @Tags coins
+// @Produce json
+// @Param title query []string true "Coin titles"
+// @Success 200 {array} dto.CoinDTO
+// @Failure 400 {string} string
+// @Failure 404 {string} string
+// @Failure 500 {string} string
+// @Router /coins/get/max [get]
 func (s *Server) GetMaxPrices(w http.ResponseWriter, r *http.Request) {
 	titles := r.URL.Query()["title"]
 	if len(titles) == 0 {
@@ -112,6 +148,17 @@ func (s *Server) GetMaxPrices(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetPriceChangePercent
+// @Summary Get cryptocurrency price change percent
+// @Description Returns cryptocurrency price change percentage for the last hour
+// @Tags coins
+// @Produce json
+// @Param title query []string true "Coin titles"
+// @Success 200 {array} dto.CoinDTO
+// @Failure 400 {string} string
+// @Failure 404 {string} string
+// @Failure 500 {string} string
+// @Router /coins/get/change-percent [get]
 func (s *Server) GetPriceChangePercent(w http.ResponseWriter, r *http.Request) {
 	titles := r.URL.Query()["title"]
 	if len(titles) == 0 {
@@ -142,7 +189,7 @@ func Error(w http.ResponseWriter, err error) {
 	case errors.Is(err, entity.ErrNotFound):
 		http.Error(w, err.Error(), http.StatusNotFound)
 	default:
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 

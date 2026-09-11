@@ -60,81 +60,89 @@ func (r *Repository) Get(ctx context.Context, titles []string, opts ...cases.Opt
 		return nil, errors.Wrap(entity.ErrInvalidParams, "PostgresSQL repository Get: titles is empty")
 	}
 
-	options := &cases.Options{}
-	for _, opt := range opts {
-		opt(options)
-	}
 	var (
 		query string
 		args  []any
 		err   error
 	)
-
-	switch options.Mode {
-	case cases.ModeMinPrices:
-		since := time.Now().Add(-24 * time.Hour)
+	if len(opts) == 0 {
 		query, args, err = r.sq.
-			Select("DISTINCT ON (title) title, price, creation_time").
+			Select("DISTINCT ON(title) title", "price", "creation_time").
 			From("coin_prices").
 			Where(squirrel.Eq{"title": titles}).
-			Where(squirrel.GtOrEq{"creation_time": since}).
-			OrderBy("title", "price ASC").
+			OrderBy("title, creation_time DESC").
 			ToSql()
 		if err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to generate sql")
+			return nil, errors.Wrap(err, "PostgresSQL repository Get:  generate latest prices sql")
 		}
-	case cases.ModeMaxPrices:
-		since := time.Now().Add(-24 * time.Hour)
-		query, args, err = r.sq.
-			Select("DISTINCT ON (title) title, price, creation_time").
-			From("coin_prices").
-			Where(squirrel.Eq{"title": titles}).
-			Where(squirrel.GtOrEq{"creation_time": since}).
-			OrderBy("title", "price DESC").
-			ToSql()
-		if err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to generate sql")
+	} else {
+		options := &cases.Options{}
+		for _, opt := range opts {
+			opt(options)
 		}
-	case cases.ModePriceChangePercent:
-		since := time.Now().Add(-time.Hour)
-		latestQuery, latestArgs, err := r.sq.
-			Select("DISTINCT ON (title) title", "price", "creation_time").
-			From("coin_prices").
-			Where(squirrel.Eq{"title": titles}).
-			OrderBy("title", "creation_time DESC").
-			ToSql()
-		if err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to generate sql")
-		}
-		hourAgoQuery, hourAgoArgs, err := r.sq.
-			Select("DISTINCT ON (title) title", "price", "creation_time").
-			From("coin_prices").
-			Where(squirrel.Eq{"title": titles}).
-			Where(squirrel.GtOrEq{"creation_time": since}).
-			OrderBy("title", "creation_time ASC").
-			ToSql()
-		if err != nil {
-			return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to generate sql")
-		}
-		query = `
-			WITH latest AS (` + latestQuery + `),
-			hour_ago AS (` + hourAgoQuery + `)
-			SELECT
-				latest.title,
-				(latest.price - hour_ago.price)
-					/ hour_ago.price * 100,
-				latest.creation_time
-			FROM latest
-			JOIN hour_ago
-				ON hour_ago.title = latest.title
-			WHERE hour_ago.price <> 0
-		`
 
-		args = append(latestArgs, hourAgoArgs...)
-	default:
-		return nil, errors.Wrap(entity.ErrInvalidParams, "PostgresSQL repository GetLatestPrices: unsupported mode")
+		switch options.Mode {
+		case cases.ModeMinPrices:
+			since := time.Now().Add(-24 * time.Hour)
+			query, args, err = r.sq.
+				Select("DISTINCT ON (title) title, price, creation_time").
+				From("coin_prices").
+				Where(squirrel.Eq{"title": titles}).
+				Where(squirrel.GtOrEq{"creation_time": since}).
+				OrderBy("title", "price ASC").
+				ToSql()
+			if err != nil {
+				return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to generate sql")
+			}
+		case cases.ModeMaxPrices:
+			since := time.Now().Add(-24 * time.Hour)
+			query, args, err = r.sq.
+				Select("DISTINCT ON (title) title, price, creation_time").
+				From("coin_prices").
+				Where(squirrel.Eq{"title": titles}).
+				Where(squirrel.GtOrEq{"creation_time": since}).
+				OrderBy("title", "price DESC").
+				ToSql()
+			if err != nil {
+				return nil, errors.Wrap(err, "PostgresSQL repository GetMinPrices: failed to generate sql")
+			}
+		case cases.ModePriceChangePercent:
+			since := time.Now().Add(-time.Hour)
+			query = `
+        WITH latest AS (
+            SELECT DISTINCT ON (title)
+                title,
+                price,
+                creation_time
+            FROM coin_prices
+            WHERE title = ANY($1)
+            ORDER BY title, creation_time DESC
+        ),
+        hour_ago AS (
+            SELECT DISTINCT ON (title)
+                title,
+                price,
+                creation_time
+            FROM coin_prices
+            WHERE title = ANY($1)
+              AND creation_time >= $2
+            ORDER BY title, creation_time ASC
+        )
+        SELECT
+            latest.title,
+            (latest.price - hour_ago.price)
+                / hour_ago.price * 100,
+            latest.creation_time
+        FROM latest
+        JOIN hour_ago
+            ON hour_ago.title = latest.title
+        WHERE hour_ago.price <> 0
+    `
+			args = []any{titles, since}
+		default:
+			return nil, errors.Wrap(entity.ErrInvalidParams, "PostgresSQL repository GetLatestPrices: unsupported mode")
+		}
 	}
-
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "PostgresSQL repository GetPriceChangePercent: failed to execute sql")
@@ -218,4 +226,7 @@ func (r *Repository) AddTrackedTitles(ctx context.Context, titles []string) erro
 		return errors.Wrap(err, "PostgresSQL repository AddTrackedTitles: add tracked titles")
 	}
 	return nil
+}
+func (r *Repository) Close() {
+	r.pool.Close()
 }

@@ -5,12 +5,9 @@ import (
 	"cryptocurrency/deploy/config"
 	_ "cryptocurrency/docs"
 	"cryptocurrency/internal/app"
-	"os"
+	"log"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"github.com/pkg/errors"
 )
 
 // @title Cryptocurrency Tracking API
@@ -19,31 +16,19 @@ import (
 // @host localhost:8080
 // @BasePath /api/v1
 func main() {
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	log.Println("main: application started")
 
 	cfg, err := config.LoadConfig("deploy/config/config.yaml")
 	if err != nil {
-		panic(err)
+		log.Fatalf("main: failed to load config: %v", err)
 	}
 
-	application, err := app.NewApp(ctx, cfg)
-	if err != nil {
-		panic(err)
+	if err := app.NewApp(ctx, cfg); err != nil {
+		log.Fatalf("main: failed to init app: %v", err)
 	}
 
-	go func() {
-		if err := application.Start(); err != nil {
-			panic(err)
-		}
-	}()
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := application.Shutdown(shutdownCtx); err != nil {
-		panic(errors.Wrap(err, "main: shutdown"))
-
-	}
+	log.Println("main: application stopped")
 }

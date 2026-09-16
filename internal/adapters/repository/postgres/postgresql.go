@@ -19,7 +19,7 @@ type Repository struct {
 func NewRepository(ctx context.Context, dataBaseURL string) (*Repository, error) {
 	pool, err := pgxpool.New(ctx, dataBaseURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "PostgreSQL repository: create connection pool")
+		return nil, errors.Wrap(err, "app: failed to connect to database")
 	}
 	if err := pool.Ping(ctx); err != nil {
 		defer pool.Close()

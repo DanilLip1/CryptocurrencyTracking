@@ -42,7 +42,6 @@ func (c *Client) GetRates(ctx context.Context, titles []string) ([]entity.Coin, 
 	if len(titles) == 0 {
 		return nil, errors.Wrap(entity.ErrInvalidParams, "CoinGecko GetRates: titles is required")
 	}
-	//endpoint, err := c.baseURL.Parse("simple/price")
 	rawURL, err := url.Parse(c.baseURL + "/simple/price")
 	if err != nil {
 		return nil, errors.Wrap(err, "parse url")

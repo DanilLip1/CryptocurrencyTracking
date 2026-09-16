@@ -1,5 +1,7 @@
+BEGIN;
+
 CREATE TABLE coins_tracked (
-    title TEXT primary key
+    title VARCHAR(10) primary key
 );
 
 CREATE TABLE coin_prices (
@@ -10,4 +12,6 @@ CREATE TABLE coin_prices (
 );
 
 CREATE INDEX idx_coin_prices_title_creation_time
-    ON coin_prices (title, price, creation_time DESC);
+    ON coin_prices (title, creation_time DESC);
+
+COMMIT;

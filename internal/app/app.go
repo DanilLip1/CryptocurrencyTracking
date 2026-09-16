@@ -8,65 +8,83 @@ import (
 	"cryptocurrency/internal/cases"
 	"cryptocurrency/internal/ports/http/public"
 	"log"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
 )
 
-type App struct {
-	server     *public.Server
-	repository *postgres.Repository
-	cron       *cron.Cron
-}
+func NewApp(ctx context.Context, cfg *config.Config) error {
+	log.Println("initializing application")
 
-func NewApp(ctx context.Context, cfg *config.Config) (*App, error) {
-	repository, err := postgres.NewRepository(ctx, cfg.Postgres.URL)
+	repository, err := postgres.NewRepository(ctx, cfg.PostgresURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "app: create postgres repository")
+		log.Printf("app: failed to create repository: %v", err)
+		return errors.Wrap(err, "app: create postgres repository")
 	}
-	provider, err := coingecko.NewClient(cfg.CoinGecko.APIKey, cfg.CoinGecko.BaseURL)
+	defer repository.Close()
+	log.Println("app: repository created")
+
+	provider, err := coingecko.NewClient(cfg.CoinGeckoApiKey, cfg.CoinGeckoBaseURL)
 	if err != nil {
-		repository.Close()
-		return nil, errors.Wrap(err, "app: create provider")
+		log.Printf("app: failed to create provider: %v", err)
+		return errors.Wrap(err, "app: create provider coingecko")
 	}
+	log.Println("app: provider created")
+
 	service, err := cases.NewCurrencyService(repository, provider)
 	if err != nil {
-		repository.Close()
-		return nil, errors.Wrap(err, "app: create service")
+		log.Printf("app: filed to create service: %v", err)
+		return errors.Wrap(err, "app: create service")
 	}
-	server, err := public.NewServer(service, cfg.HTTP.Address)
+	log.Println("app: service created")
+
+	server, err := public.NewServer(service, cfg.HTTPAddress)
 	if err != nil {
-		repository.Close()
-		return nil, errors.Wrap(err, "app: create server")
+		log.Printf("app: failed to create server: %v", err)
+		return errors.Wrap(err, "app: create server")
 	}
+	log.Println("app: server created")
 
 	scheduler := cron.New()
-	_, err = scheduler.AddFunc("@every "+cfg.Cron.UpdateInterval, func() {
+	_, err = scheduler.AddFunc("@every "+cfg.CronUpdateInterval, func() {
+		log.Println("app: cron update prices started")
 		if err := service.UpdatePrices(context.Background()); err != nil {
-			log.Printf("cron update prices: %v", err)
+			log.Printf("app: cron update prices failed: %v", err)
 			return
 		}
+		log.Println("app: cron update prices completed")
 	})
 	if err != nil {
-		repository.Close()
-		return nil, errors.Wrap(err, "app: add cron job")
+		log.Printf("app: failed to add cron update job: %v", err)
+		return errors.Wrap(err, "app: add cron job")
 	}
-	return &App{
-		server:     server,
-		repository: repository,
-		cron:       scheduler,
-	}, nil
-}
 
-func (app *App) Start() error {
-	app.cron.Start()
-	return app.server.Run()
-}
-func (app *App) Shutdown(ctx context.Context) error {
-	app.cron.Stop()
-	if err := app.server.Shutdown(ctx); err != nil {
-		return errors.Wrap(err, "app: shutdown server")
+	scheduler.Start()
+	log.Println("app: scheduler started")
+
+	go func() {
+		log.Println("app: starting http server")
+
+		if err := server.Run(); err != nil {
+			log.Printf("app: http server failed: %v", err)
+		}
+	}()
+	<-ctx.Done()
+
+	log.Println("app: graceful shutdown started")
+
+	scheduler.Stop()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Printf("app: http server shutdown failed: %v", err)
+		return errors.Wrap(err, "app: shutdown HTTP server")
 	}
-	app.repository.Close()
+	log.Println("app: http server stopped")
+	log.Println("app: graceful shutdown completed")
+
 	return nil
 }

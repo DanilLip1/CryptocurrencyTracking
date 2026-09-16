@@ -6,25 +6,11 @@ import (
 )
 
 type Config struct {
-	HTTP      HTTPConfig      `mapstructure:"http"`
-	Postgres  PostgresConfig  `mapstructure:"postgres"`
-	CoinGecko CoinGeckoConfig `mapstructure:"coingecko"`
-	Cron      CronConfig      `mapstructure:"cron"`
-}
-
-type HTTPConfig struct {
-	Address string `mapstructure:"address"`
-}
-type PostgresConfig struct {
-	URL string `mapstructure:"url"`
-}
-type CoinGeckoConfig struct {
-	APIKey  string `mapstructure:"api_key"`
-	BaseURL string `mapstructure:"base_url"`
-}
-
-type CronConfig struct {
-	UpdateInterval string `mapstructure:"update_interval"`
+	HTTPAddress        string `mapstructure:"http_address"`
+	PostgresURL        string `mapstructure:"postgres_url"`
+	CoinGeckoApiKey    string `mapstructure:"coingecko_api_key"`
+	CoinGeckoBaseURL   string `mapstructure:"coingecko_base_url"`
+	CronUpdateInterval string `mapstructure:"cron_update_interval"`
 }
 
 func LoadConfig(path string) (*Config, error) {

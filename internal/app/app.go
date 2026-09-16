@@ -63,6 +63,7 @@ func NewApp(ctx context.Context, cfg *config.Config) error {
 	scheduler.Start()
 	log.Println("app: scheduler started")
 
+	serverErrors := make(chan error, 1)
 	go func() {
 		log.Println("app: starting http server")
 
@@ -70,9 +71,12 @@ func NewApp(ctx context.Context, cfg *config.Config) error {
 			log.Printf("app: http server failed: %v", err)
 		}
 	}()
-	<-ctx.Done()
-
-	log.Println("app: graceful shutdown started")
+	select {
+	case err := <-serverErrors:
+		return errors.Wrap(err, "app: http server failed")
+	case <-ctx.Done():
+		log.Println("app: graceful shutdown started")
+	}
 
 	scheduler.Stop()
 

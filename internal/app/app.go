@@ -68,17 +68,18 @@ func NewApp(ctx context.Context, cfg *config.Config) error {
 		log.Println("app: starting http server")
 
 		if err := server.Run(); err != nil {
-			log.Printf("app: http server failed: %v", err)
+			serverErrors <- err
 		}
 	}()
+
 	select {
 	case err := <-serverErrors:
+		log.Println("app: server cron job finished with error:", err)
+		scheduler.Stop()
 		return errors.Wrap(err, "app: http server failed")
 	case <-ctx.Done():
 		log.Println("app: graceful shutdown started")
 	}
-
-	scheduler.Stop()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -88,7 +89,11 @@ func NewApp(ctx context.Context, cfg *config.Config) error {
 		return errors.Wrap(err, "app: shutdown HTTP server")
 	}
 	log.Println("app: http server stopped")
-	log.Println("app: graceful shutdown completed")
 
+	schedulerCtx := scheduler.Stop()
+	<-schedulerCtx.Done()
+	log.Println("app: scheduler stopped")
+
+	log.Println("app: graceful shutdown completed")
 	return nil
 }

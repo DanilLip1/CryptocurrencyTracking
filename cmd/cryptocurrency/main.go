@@ -23,11 +23,13 @@ func main() {
 
 	cfg, err := config.LoadConfig("deploy/config/config.yaml")
 	if err != nil {
-		log.Fatalf("main: failed to load config: %v", err)
+		log.Printf("main: failed to load config: %v", err)
+		return
 	}
 
 	if err := app.NewApp(ctx, cfg); err != nil {
-		log.Fatalf("main: failed to init app: %v", err)
+		log.Printf("main: failed to start app: %v", err)
+		return
 	}
 
 	log.Println("main: application stopped")

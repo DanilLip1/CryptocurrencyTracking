@@ -10,6 +10,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
 )
@@ -24,6 +28,17 @@ func NewApp(ctx context.Context, cfg *config.Config) error {
 	}
 	defer repository.Close()
 	log.Println("app: repository created")
+
+	migration, err := migrate.New("file:///app/deploy/migration/postgres", cfg.PostgresURL)
+	if err != nil {
+		log.Printf("app: failed to create migration : %v", err)
+		return errors.Wrap(err, "app: create migration ")
+	}
+	defer migration.Close()
+	if err := migration.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return errors.Wrap(err, "app: migration up")
+	}
+	log.Println("app: migration up")
 
 	provider, err := coingecko.NewClient(cfg.CoinGeckoApiKey, cfg.CoinGeckoBaseURL)
 	if err != nil {

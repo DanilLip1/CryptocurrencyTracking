@@ -2,7 +2,7 @@
 http_address: ":8080"
 
 
-postgres_url: "postgres://postgres:1111@postgres:5432/cryptocurrency"
+postgres_url: "postgres://postgres:1111@postgres:5432/cryptocurrency?sslmode=disable"
 
 coingecko_api_key: "CG-yMV1tsqrusdwqPmquZ94VNWC"
 coingecko_base_url: "https://api.coingecko.com/api/v3"

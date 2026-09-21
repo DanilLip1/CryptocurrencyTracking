@@ -1,0 +1,163 @@
+basePath: /api/v1
+definitions:
+  dto.CoinDTO:
+    properties:
+      creationTime:
+        type: string
+      price:
+        type: number
+      title:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for tracking cryptocurrency prices.
+  title: Cryptocurrency Tracking API
+  version: "1.0"
+paths:
+  /coins/get/change-percent:
+    get:
+      description: Returns cryptocurrency price change percentage for the last hour
+      parameters:
+      - collectionFormat: csv
+        description: Coin titles
+        in: query
+        items:
+          type: string
+        name: title
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.CoinDTO'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get cryptocurrency price change percent
+      tags:
+      - coins
+  /coins/get/latest:
+    get:
+      description: Returns the latest prices for requested cryptocurrencies
+      parameters:
+      - collectionFormat: csv
+        description: Coin titles
+        in: query
+        items:
+          type: string
+        name: title
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.CoinDTO'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get latest prices
+      tags:
+      - coins
+  /coins/get/max:
+    get:
+      description: Returns maximum cryptocurrency prices for the last 24 hours
+      parameters:
+      - collectionFormat: csv
+        description: Coin titles
+        in: query
+        items:
+          type: string
+        name: title
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.CoinDTO'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get maximum prices
+      tags:
+      - coins
+  /coins/get/min:
+    get:
+      description: Returns minimum cryptocurrency prices for the last 24 hours
+      parameters:
+      - collectionFormat: csv
+        description: Coin titles
+        in: query
+        items:
+          type: string
+        name: title
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.CoinDTO'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get minimum prices
+      tags:
+      - coins
+swagger: "2.0"

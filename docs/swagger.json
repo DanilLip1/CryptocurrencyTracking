@@ -1,0 +1,245 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API for tracking cryptocurrency prices.",
+        "title": "Cryptocurrency Tracking API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/coins/get/change-percent": {
+            "get": {
+                "description": "Returns cryptocurrency price change percentage for the last hour",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "coins"
+                ],
+                "summary": "Get cryptocurrency price change percent",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Coin titles",
+                        "name": "title",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.CoinDTO"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/coins/get/latest": {
+            "get": {
+                "description": "Returns the latest prices for requested cryptocurrencies",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "coins"
+                ],
+                "summary": "Get latest prices",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Coin titles",
+                        "name": "title",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.CoinDTO"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/coins/get/max": {
+            "get": {
+                "description": "Returns maximum cryptocurrency prices for the last 24 hours",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "coins"
+                ],
+                "summary": "Get maximum prices",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Coin titles",
+                        "name": "title",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.CoinDTO"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/coins/get/min": {
+            "get": {
+                "description": "Returns minimum cryptocurrency prices for the last 24 hours",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "coins"
+                ],
+                "summary": "Get minimum prices",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Coin titles",
+                        "name": "title",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.CoinDTO"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.CoinDTO": {
+            "type": "object",
+            "properties": {
+                "creationTime": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

@@ -2,9 +2,9 @@
 http_address: ":8080"
 
 
-postgres_url: "postgres://postgres:1111@localhost:5432/cryptocurrency"
+postgres_url: "postgres://postgres:1111@postgres:5432/cryptocurrency"
 
 coingecko_api_key: "CG-yMV1tsqrusdwqPmquZ94VNWC"
 coingecko_base_url: "https://api.coingecko.com/api/v3"
 
-cron_update_interval: "15s"
+cron_update_interval: "15m"

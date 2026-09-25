@@ -130,8 +130,11 @@ func (r *Repository) Get(ctx context.Context, titles []string, opts ...cases.Opt
         )
         SELECT
             latest.title,
-            (latest.price - hour_ago.price)
-                / hour_ago.price * 100,
+			ROUND(
+            ((latest.price - hour_ago.price)
+			/ hour_ago.price * 100)::numeric,
+			2
+		) AS price_change_percent,
             latest.creation_time
         FROM latest
         JOIN hour_ago
@@ -221,6 +224,7 @@ func (r *Repository) AddTrackedTitles(ctx context.Context, titles []string) erro
 	if err != nil {
 		return errors.Wrap(err, "PostgresSQL repository AddTrackedTitles: build insert titles query")
 	}
+	//log
 	_, err = r.pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return errors.Wrap(err, "PostgresSQL repository AddTrackedTitles: add tracked titles")

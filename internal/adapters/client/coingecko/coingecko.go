@@ -78,13 +78,17 @@ func (c *Client) GetRates(ctx context.Context, titles []string) ([]entity.Coin, 
 	now := time.Now()
 
 	for title, prices := range data {
+		if title == "" {
+			continue
+		}
+
 		price, ok := prices["usd"]
 		if !ok {
 			continue
 		}
 		coin, err := entity.NewCoin(title, price, now)
 		if err != nil {
-			return nil, errors.Wrap(err, "CoinGecko GetRates: new coin: %w")
+			continue
 		}
 		coins = append(coins, *coin)
 	}
